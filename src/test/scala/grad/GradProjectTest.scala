@@ -73,9 +73,9 @@ class InstructionMemoryTest extends AnyFlatSpec with ChiselScalatestTester {
         c.clock.step(2)
 
         // Read phase
-        c.io.readAddr(0).poke(0.U) // Read from the 0th register
+        c.io.readAddr1(0).poke(0.U) // Read from the 0th register
         c.clock.step(1)
-        c.io.readData(0).expect(123.U) // Check if the read data is correct
+        c.io.readData1(0).expect(123.U) // Check if the read data is correct
     }
   }
 

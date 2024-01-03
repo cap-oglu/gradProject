@@ -158,10 +158,10 @@ class ControlUnit extends Module {
       
     }
     is(OpCode.ADD) {
-      alu_op_sel := ALUOp.ADD
+      io.alu_op_sel := ALUOp.ADD
     }
     is(OpCode.ADDI) {
-      alu_op_sel := ALUOp.ADD
+      io.alu_op_sel := ALUOp.ADD
     }
 
     // Add additional opCodes as necessary
@@ -216,14 +216,14 @@ class TopLevel(size: Int, program: Seq[UInt], numBanks: Int, numRegsPerBank: Int
     val resetPC = Input(Bool()) // Input to reset the PC
   })
 
-  val memory = Module(new InstructionMemory(size, program))
+  val instructionMemory = Module(new InstructionMemory(size, program))
   val pc = Module(new ProgramCounter(size))
   val controlUnit = Module(new ControlUnit)
   val registerFile = Module(new RegisterFile(numBanks, numRegsPerBank, numReadPorts, numWritePorts))
   val alu = Module(new ALU)
   // Connect the Program Counter to the Instruction Memory
   pc.io.resetPC := io.resetPC
-  memory.io.address := pc.io.nextPC
+  instructionMemory.io.address := pc.io.nextPC
 
   // Fetch the instruction and pass it to the Control Unit
   val fetchedInstruction = instructionMemory.io.instruction
@@ -234,22 +234,22 @@ class TopLevel(size: Int, program: Seq[UInt], numBanks: Int, numRegsPerBank: Int
   val readAddr2 = fetchedInstruction(11, 8) // Extract the read address 2 from the instruction
   val writeAddr = fetchedInstruction(15, 12) // Extract the write address from the instruction
   
-  alu.io.in1 := Mux(controlUnit.io.numInp === 0.U,
-                  someValueForZero, // Replace with the actual value for the case numInp == 0
-                  Mux(controlUnit.io.numInp === 1.U,
+  alu.io.in1 := Mux(controlUnit.io.numInp_sel === 0.U,
+                  0.U, // Replace with the actual value for the case numInp == 0
+                  Mux(controlUnit.io.numInp_sel === 1.U,
                       registerFile.io.readData1(readAddr1), // Replace with the actual value for the case numInp == 1
-                      Mux(controlUnit.io.numInp === 2.U,
+                      Mux(controlUnit.io.numInp_sel === 2.U,
                           registerFile.io.readData1(readAddr1), // Value for numInp == 2
-                          Mux(controlUnit.io.numInp === 3.U,
+                          Mux(controlUnit.io.numInp_sel === 3.U,
                               registerFile.io.readData1(readAddr1), // Value for numInp == 3
                               0.U)))) // Default value
 
   
-  alu.io.in2 := Mux(controlUnit.io.imm_sel && (controlUnit.io.numInp === 0.U || controlUnit.io.numInp === 1.U),
+  alu.io.in2 := Mux(controlUnit.io.imm_sel && (controlUnit.io.numInp_sel === 0.U || controlUnit.io.numInp_sel === 1.U),
                   immediateValue, // Replace with the immediate value
-                          Mux(controlUnit.io.numInp === 2.U,
+                          Mux(controlUnit.io.numInp_sel === 2.U,
                               registerFile.io.readData2(readAddr2), // Value for numInp == 2
-                              Mux(controlUnit.io.numInp === 3.U,
+                              Mux(controlUnit.io.numInp_sel === 3.U,
                                   registerFile.io.readData2(readAddr2), // Value for numInp == 3
                                   0.U))) // Default value
 
@@ -262,7 +262,7 @@ class TopLevel(size: Int, program: Seq[UInt], numBanks: Int, numRegsPerBank: Int
 
 
   // Output the instruction from the memory
-  io.instruction := memory.io.instruction
+  io.instruction := instructionMemory.io.instruction
 }
 
 
